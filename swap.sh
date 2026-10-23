@@ -3,7 +3,7 @@
 # ┌──────────────────────────────────────────────────────────┐
 # │  UNIVERSAL CLEAN FINAL - ALL VPS COMPATIBLE             │
 # │  Logic: Universal (KVM/OpenVZ/LXC/NAT/Potato)           │
-# │  Menu : Clean Edition (5 items)                         │
+# │  Menu : Clean Edition with Virt                         │
 # │  Design by: Deki Niswara                               │
 # └──────────────────────────────────────────────────────────┘
 
@@ -108,11 +108,6 @@ display_menu() {
     echo ""
     echo -e -n "${CYAN} Select [1-5]: ${NC}"
 }
-}
-
-
-
-
 
 print_info() { echo -e "${BLUE}➽ $1${NC}"; }
 print_error() { echo -e "${RED}✘ $1${NC}"; }
@@ -142,7 +137,6 @@ install_swapfile() {
     if [ -z "$size_gb" ]; then echo -e -n "${YELLOW}Enter swap size in GB (e.g. 2): ${NC}"; read size_gb; fi
     [[ ! "$size_gb" =~ ^[0-9]+$ ]] && { print_error "Invalid number"; return 1; }
     local free_mb=$(df -m / | awk 'NR==2{print $4}'); [ "$free_mb" -lt $((size_gb*1024+512)) ] && { print_error "Disk full! Free ${free_mb}MB"; return 1; }
-
     print_info "Creating ${size_gb}GB swap file..."
     swapoff $SWAP_FILE 2>/dev/null; rm -f $SWAP_FILE; sed -i "\#$SWAP_FILE#d" /etc/fstab
     fallocate -l "${size_gb}G" $SWAP_FILE 2>/dev/null || dd if=/dev/zero of=$SWAP_FILE bs=1M count=$((size_gb*1024)) status=progress
@@ -160,7 +154,7 @@ install_swapfile() {
 
 install_zram() {
     print_info "Enabling ZRAM..."
-    if ! check_zram_support; then print_error "ZRAM not supported on this kernel"; install_potato_fallback; return; fi
+    if ! check_zram_support; then print_error "ZRAM not supported"; install_potato_fallback; return; fi
     local ram_mb=$(get_ram_mb); local zram_mb
     if [ "$ram_mb" -lt 1024 ]; then zram_mb=$ram_mb; else zram_mb=$((ram_mb*60/100)); fi
     local algo="zstd"; grep -q zstd /sys/block/zram0/comp_algorithm 2>/dev/null && algo="zstd" || algo="lz4"
@@ -168,7 +162,6 @@ install_zram() {
     echo $algo > /sys/block/zram0/comp_algorithm 2>/dev/null || true
     echo "${zram_mb}M" > /sys/block/zram0/disksize 2>/dev/null || echo $((zram_mb*1024*1024)) > /sys/block/zram0/disksize
     mkswap /dev/zram0; swapon -p 100 /dev/zram0
-
     if command -v systemctl >/dev/null 2>&1; then
         cat > /etc/systemd/system/zram-setup.service <<SERV
 [Unit]
@@ -193,26 +186,15 @@ install_hybrid() {
     local virt=$(detect_virt); local ram_mb=$(get_ram_mb); local ram_gb=$(get_ram_gb)
     local swap_ok=0; check_swap_support && swap_ok=1
     local zram_ok=0; check_zram_support && zram_ok=1
-
-    # Tentukan ukuran dinamis - bukan hardcode
     local zram_mb; local disk_gb
-    if [ "$ram_mb" -lt 1024 ]; then
-        zram_mb=$ram_mb; disk_gb=1
-    elif [ "$ram_mb" -lt 4096 ]; then
-        zram_mb=$((ram_mb*60/100)); disk_gb=2
-    else
-        zram_mb=$((ram_mb*80/100)); disk_gb=4
-    fi
+    if [ "$ram_mb" -lt 1024 ]; then zram_mb=$ram_mb; disk_gb=1
+    elif [ "$ram_mb" -lt 4096 ]; then zram_mb=$((ram_mb*60/100)); disk_gb=2
+    else zram_mb=$((ram_mb*80/100)); disk_gb=4; fi
 
-    # Fallback untuk VPS kentang
-    if [ $swap_ok -eq 0 ] && [ $zram_ok -eq 0 ]; then
-        print_info "Both swap and zram blocked ($virt) -> Using Potato Optimizer..."
-        install_potato_fallback; return
-    fi
+    if [ $swap_ok -eq 0 ] && [ $zram_ok -eq 0 ]; then print_info "Both blocked ($virt) -> Potato Optimizer..."; install_potato_fallback; return; fi
     if [ $swap_ok -eq 0 ]; then install_zram; return; fi
     if [ $zram_ok -eq 0 ]; then install_swapfile $disk_gb; return; fi
 
-    # KVM / Full support - Hybrid beneran
     print_info "Virt: $virt | RAM: ${ram_mb}MB -> ZRAM ${zram_mb}MB + Disk ${disk_gb}GB"
     swapoff -a 2>/dev/null || true; rm -f $SWAP_FILE; sed -i "\#$SWAP_FILE#d" /etc/fstab
     systemctl stop zram-setup.service 2>/dev/null || true; modprobe -r zram 2>/dev/null; modprobe zram num_devices=1
@@ -238,7 +220,6 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 SERV
     systemctl daemon-reload 2>/dev/null; systemctl enable zram-setup.service >/dev/null 2>&1
-
     optimize_kernel "hybrid"
     show_success_art "ULTRA HYBRID ENABLED - ZRAM ${zram_mb}MB + DISK ${disk_gb}GB"
 }
