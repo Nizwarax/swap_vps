@@ -1,32 +1,27 @@
 #!/bin/bash
 
 # ┌──────────────────────────────────────────────┐
-# │  ULTIMATE SWAP MANAGER - CELEBRATION EDIT.   │
-# │  Fitur: Powerfull Logic + Auto ASCII Success │
+# │  ULTIMATE SWAP MANAGER - CLEAN ULTRA EDITION │
+# │  Features: ZRAM zstd + Swap File Hybrid      │
 # │  Design by: Deki Niswara                     │
 # └──────────────────────────────────────────────┘
 
-# Pastikan dijalankan sebagai root
 if [[ $EUID -ne 0 ]]; then
-   echo "Script harus dijalankan sebagai root!" 
+   echo "This script must be run as root!"
    exit 1
 fi
 
-# === KONFIGURASI WARNA ===
-export RED='\033[0;31m'
-export GREEN='\033[0;32m'
-export YELLOW='\033[0;33m'
-export BLUE='\033[0;34m'
-export PURPLE='\033[0;35m'
-export CYAN='\033[0;36m'
-export LIGHT='\033[0;37m'
-export NC='\033[0m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+LIGHT='\033[0;37m'
+NC='\033[0m'
 
 SWAP_FILE="/swapfile"
 
-# === FUNGSI TAMPILAN (ART) ===
-
-# Fungsi ini akan dipanggil SETIAP KALI SUKSES (Pasang/Hapus)
 show_success_art() {
     local message="$1"
     clear
@@ -60,148 +55,208 @@ show_success_art() {
     echo -e "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⠏⠁⠀⠀⠈⠻⡿⣿⣿⣿⣿⣿⣿⣿⣿⡆⠀⠀⠀⠀"
     echo -e "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠻⢿⡿⣿⣿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠉⠉⠀⠀⠀⠀⠀${NC}"
     echo -e ""
-    echo -e "${PURPLE}"
-    echo -e " ██╗███╗░░██╗░██████╗████████╗░█████╗░██╗░░░░░██╗░░░░░"
+    echo -e "${PURPLE} ██╗███╗░░██╗░██████╗████████╗░█████╗░██╗░░░░░██╗░░░░░"
     echo -e " ██║████╗░██║██╔════╝╚══██╔══╝██╔══██╗██║░░░░░██║░░░░░"
     echo -e " ██║██╔██╗██║╚█████╗░░░░██║░░░███████║██║░░░░░██║░░░░░"
     echo -e " ██║██║╚████║░╚═══██╗░░░██║░░░██╔══██║██║░░░░░██║░░░░░"
     echo -e " ██║██║░╚███║██████╔╝░░░██║░░░██║░░██║███████╗███████╗"
     echo -e " ╚═╝╚═╝░░╚══╝╚═════╝░░░░╚═╝░░░╚═╝░░╚═╝╚══════╝╚══════╝${NC}"
     echo -e ""
-    echo -e "${YELLOW}"
-    echo -e " ░██████╗██╗░░░██║░█████╗░░█████╗░███████╗███████╗██████╗░"
+    echo -e "${YELLOW} ░██████╗██╗░░░██║░█████╗░░█████╗░███████╗███████╗██████╗░"
     echo -e " ██╔════╝██║░░░██║██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗"
     echo -e " ╚█████╗░██║░░░██║██║░░╚═╝██║░░╚═╝█████╗░░█████╗░░██║░░██║"
     echo -e " ░╚═══██╗██║░░░██║██║░░██╗██║░░██╗██╔══╝░░██╔══╝░░██║░░██║"
     echo -e " ██████╔╝╚██████╔╝╚█████╔╝╚█████╔╝███████╗███████╗██████╔╝"
     echo -e " ╚═════╝░░╚═════╝░░╚════╝░░╚════╝░╚══════╝╚══════╝╚═════╝░${NC}"
     echo -e ""
-    echo -e "${PURPLE}\n[ $message ]\n${NC}"
-    echo "ulimit -SHn 1000000" >> /etc/profile
+    echo -e "${GREEN}[ $message ]${NC}\n"
 }
 
 get_os_info() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
-        OS_NAME="$PRETTY_NAME"
-    elif command -v lsb_release >/dev/null 2>&1; then
-        OS_NAME=$(lsb_release -ds)
+        echo "$PRETTY_NAME"
     else
-        OS_NAME=$(cat /etc/*release | grep -m1 PRETTY_NAME | cut -d'"' -f2)
+        echo "Unknown"
     fi
-    [ -z "$OS_NAME" ] && OS_NAME="Unknown"
-    echo "$OS_NAME"
 }
 
 display_menu() {
-    opsy=$(get_os_info)
+    OPSY=$(get_os_info)
     RAM_TOTAL=$(free -h | grep Mem | awk '{print $2}')
-    SWAP_USED=$(free -h | grep Swap | awk '{print $2 " / " $3}')
-    
+    SWAP_INFO=$(free -h | grep Swap | awk '{print $2 " / " $3}')
+
     clear
-    echo -e "${YELLOW}┌────────────${NC} ${LIGHT}◈ Informasi Sistem ◈ ${NC}${YELLOW}────────────┐${NC}"
-    echo -e "${YELLOW} ➽ OS         : $opsy ${NC}"
-    echo -e "${YELLOW} ➽ Status RAM : $RAM_TOTAL ${NC}"
-    echo -e "${YELLOW} ➽ Status Swap: $SWAP_USED (Used/Total) ${NC}"
-    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo " ➽ Dibuat Oleh: https://t.me/Deki_niswara"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${LIGHT}       ULTIMATE SWAP MANAGER - CLEAN ULTRA${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e " OS   : $OPSY"
+    echo -e " RAM  : $RAM_TOTAL"
+    echo -e " Swap : $SWAP_INFO"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    echo -e "${YELLOW} [1] ${NC} Buat Swap File (HDD/SSD Standard)"
-    echo -e "${YELLOW} [2] ${NC} 🚀 Pasang ZRAM (Booster VPS)"
-    echo -e "${YELLOW} [3] ${NC} Hapus Semua Swap"
-    echo -e "${YELLOW} [4] ${NC} Keluar"
+    echo -e " ${YELLOW}[1]${NC} Create Swap File (Standard)"
+    echo -e " ${YELLOW}[2]${NC} Enable ZRAM (Compressed RAM)"
+    echo -e " ${YELLOW}[3]${NC} Enable ULTRA HYBRID ${GREEN}(Recommended)${NC}"
+    echo -e " ${YELLOW}[4]${NC} Remove All Swap"
+    echo -e " ${YELLOW}[5]${NC} Exit"
     echo ""
-    echo -e -n "${CYAN} Pilih Menu [1-4]: ${NC}"
+    echo -e -n "${CYAN} Select [1-5]: ${NC}"
 }
 
 print_info() { echo -e "${BLUE}➽ $1${NC}"; }
-print_error() { echo -e "${RED}✘ ✘ $1${NC}"; }
-
-# === LOGIC SYSTEM ===
+print_error() { echo -e "${RED}✘ $1${NC}"; }
 
 optimize_kernel() {
     MODE=$1
-    SYSCTL="/etc/sysctl.conf"
-    
-    # Hapus setting lama
-    sed -i '/vm.swappiness/d' $SYSCTL
-    sed -i '/vm.vfs_cache_pressure/d' $SYSCTL
-    
-    if [[ "$MODE" == "zram" ]]; then
-        echo "vm.swappiness=100" >> $SYSCTL
-        echo "vm.vfs_cache_pressure=50" >> $SYSCTL
-    else
-        echo "vm.swappiness=10" >> $SYSCTL
-        echo "vm.vfs_cache_pressure=50" >> $SYSCTL
-    fi
-    sysctl -p > /dev/null
-}
+    CONF="/etc/sysctl.d/99-ultra-swap.conf"
+    sed -i '/vm.swappiness/d' /etc/sysctl.conf 2>/dev/null
+    sed -i '/vm.vfs_cache_pressure/d' /etc/sysctl.conf 2>/dev/null
 
-install_zram() {
-    print_info "Menginstall ZRAM..."
-    if [ -f /etc/debian_version ]; then
-        apt update -qq && apt install zram-tools -y -qq
-    elif [ -f /etc/redhat-release ]; then
-        yum install zram -y
+    mkdir -p /etc/sysctl.d
+    if [[ "$MODE" == "zram" ]]; then
+        cat > $CONF <<EOF
+vm.swappiness=100
+vm.vfs_cache_pressure=50
+vm.page-cluster=0
+EOF
+    else
+        cat > $CONF <<EOF
+vm.swappiness=10
+vm.vfs_cache_pressure=50
+vm.dirty_ratio=15
+vm.dirty_background_ratio=5
+vm.overcommit_memory=1
+vm.page-cluster=0
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+EOF
     fi
-    echo -e "ALGO=zstd\nPERCENT=60" > /etc/default/zramswap
-    service zramswap reload 2>/dev/null || systemctl restart zramswap 2>/dev/null
-    optimize_kernel "zram"
-    
-    # SUKSES -> TAMPILKAN ART
-    show_success_art "ZRAM BERHASIL DIINSTAL & DIAKTIFKAN"
+    sysctl --system >/dev/null 2>&1
 }
 
 install_swapfile() {
-    print_info "Masukkan ukuran swap (GB). Contoh: 1, 2"
-    echo -e -n "${YELLOW}Ukuran (GB): ${NC}"
-    read SWAP_SIZE_GB
+    echo -e -n "${YELLOW}Enter swap size in GB (e.g. 4): ${NC}"
+    read SIZE
+    [[ ! "$SIZE" =~ ^[0-9]+$ ]] && { print_error "Invalid number!"; return; }
 
-    if ! [[ "$SWAP_SIZE_GB" =~ ^[0-9]+$ ]]; then
-        print_error "Input harus angka!"
-        return
-    fi
+    print_info "Creating ${SIZE}GB swap file..."
+    swapoff $SWAP_FILE 2>/dev/null
+    rm -f $SWAP_FILE
+    sed -i "\#$SWAP_FILE#d" /etc/fstab
 
-    fallocate -l "${SWAP_SIZE_GB}G" $SWAP_FILE || dd if=/dev/zero of=$SWAP_FILE bs=1M count=$((SWAP_SIZE_GB*1024))
+    fallocate -l "${SIZE}G" $SWAP_FILE 2>/dev/null || dd if=/dev/zero of=$SWAP_FILE bs=1M count=$((SIZE*1024)) status=progress
     chmod 600 $SWAP_FILE
     mkswap $SWAP_FILE
     swapon $SWAP_FILE
-    
-    if ! grep -q "$SWAP_FILE" /etc/fstab; then
-        echo "$SWAP_FILE none swap sw 0 0" >> /etc/fstab
-    fi
+    echo "$SWAP_FILE none swap sw 0 0" >> /etc/fstab
+
     optimize_kernel "hdd"
-    
-    # SUKSES -> TAMPILKAN ART
-    show_success_art "SWAP FILE $SWAP_SIZE_GB GB BERHASIL DIBUAT"
+    show_success_art "SWAP FILE ${SIZE}GB CREATED"
+}
+
+install_zram() {
+    print_info "Enabling ZRAM..."
+    RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
+    ZRAM_MB=$((RAM_MB * 60 / 100))
+
+    modprobe zram num_devices=1 2>/dev/null || true
+    if [ -f /sys/block/zram0/comp_algorithm ]; then
+        grep -q zstd /sys/block/zram0/comp_algorithm 2>/dev/null && ALGO="zstd" || ALGO="lz4"
+        echo $ALGO > /sys/block/zram0/comp_algorithm 2>/dev/null || true
+    fi
+
+    if [ -f /etc/debian_version ]; then
+        apt update -qq && apt install zram-tools -y -qq 2>/dev/null
+        echo -e "ALGO=zstd\nPERCENT=60" > /etc/default/zramswap
+        systemctl restart zramswap 2>/dev/null || service zramswap restart 2>/dev/null || true
+    fi
+
+    if ! swapon --show | grep -q zram; then
+        echo "${ZRAM_MB}M" > /sys/block/zram0/disksize 2>/dev/null || echo $((ZRAM_MB*1024*1024)) > /sys/block/zram0/disksize
+        mkswap /dev/zram0
+        swapon -p 100 /dev/zram0
+    fi
+
+    optimize_kernel "zram"
+    show_success_art "ZRAM ENABLED - 60% RAM"
+}
+
+install_hybrid_ultra() {
+    print_info "Enabling ULTRA HYBRID..."
+    RAM_GB=$(free -g | awk '/^Mem:/{print $2}')
+    [ "$RAM_GB" -eq 0 ] && RAM_GB=7
+    DISK="4G"
+
+    swapoff -a 2>/dev/null || true
+    rm -f $SWAP_FILE
+    sed -i "\#$SWAP_FILE#d" /etc/fstab
+    systemctl stop zramswap 2>/dev/null || true
+    systemctl disable zram-setup.service 2>/dev/null || true
+    rm -f /etc/systemd/system/zram-setup.service
+    modprobe -r zram 2>/dev/null; sleep 1
+    modprobe zram num_devices=1
+
+    COMP="zstd"
+    [ -f /sys/block/zram0/comp_algorithm ] && { grep -q zstd /sys/block/zram0/comp_algorithm && COMP="zstd" || COMP="lz4"; echo $COMP > /sys/block/zram0/comp_algorithm 2>/dev/null || true; }
+
+    echo "${RAM_GB}G" > /sys/block/zram0/disksize 2>/dev/null || echo $((RAM_GB*1024*1024*1024)) > /sys/block/zram0/disksize
+    mkswap /dev/zram0
+    swapon -p 100 /dev/zram0
+
+    fallocate -l $DISK $SWAP_FILE 2>/dev/null || dd if=/dev/zero of=$SWAP_FILE bs=1M count=4096 status=progress
+    chmod 600 $SWAP_FILE
+    mkswap $SWAP_FILE
+    swapon -p 10 $SWAP_FILE
+    grep -q "$SWAP_FILE" /etc/fstab || echo "$SWAP_FILE none swap sw,pri=10 0 0" >> /etc/fstab
+
+    optimize_kernel "hybrid"
+
+    cat > /etc/systemd/system/zram-setup.service <<SERV
+[Unit]
+Description=ZRAM Ultra Hybrid
+After=multi-user.target
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'modprobe zram num_devices=1 && echo $COMP > /sys/block/zram0/comp_algorithm 2>/dev/null; echo ${RAM_GB}G > /sys/block/zram0/disksize 2>/dev/null; mkswap /dev/zram0 && swapon -p 100 /dev/zram0 && swapon -p 10 $SWAP_FILE || true'
+ExecStop=/bin/bash -c 'swapoff /dev/zram0; swapoff $SWAP_FILE; echo 1 > /sys/block/zram0/reset || true'
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target
+SERV
+    systemctl daemon-reload
+    systemctl enable zram-setup.service >/dev/null 2>&1
+
+    show_success_art "ULTRA HYBRID ENABLED - ZRAM ${RAM_GB}G + DISK ${DISK}"
 }
 
 remove_swap() {
-    print_info "Menghapus Swap..."
-    swapoff $SWAP_FILE 2>/dev/null
-    sed -i "\#$SWAP_FILE#d" /etc/fstab
+    print_info "Removing all swap..."
+    swapoff -a 2>/dev/null || true
     rm -f $SWAP_FILE
-    
-    # Coba hapus ZRAM juga jika ada
-    if command -v zramctl >/dev/null; then
-        apt remove zram-tools -y -qq 2>/dev/null
-    fi
-    
-    # SUKSES -> TAMPILKAN ART
-    show_success_art "SEMUA SWAP BERHASIL DIHAPUS"
+    sed -i "\#$SWAP_FILE#d" /etc/fstab
+    sed -i "/swap/d" /etc/fstab
+    systemctl stop zram-setup.service 2>/dev/null || true
+    systemctl disable zram-setup.service 2>/dev/null || true
+    rm -f /etc/systemd/system/zram-setup.service
+    systemctl daemon-reload
+    modprobe -r zram 2>/dev/null || true
+    echo 1 > /sys/block/zram0/reset 2>/dev/null || true
+    [ -f /etc/debian_version ] && apt remove zram-tools -y -qq 2>/dev/null || true
+    rm -f /etc/default/zramswap
+    rm -f /etc/sysctl.d/99-ultra-swap.conf
+    show_success_art "ALL SWAP REMOVED"
 }
 
-# === MAIN LOOP ===
 while true; do
     display_menu
     read choice
     case $choice in
-        1) install_swapfile; read -p "Tekan Enter..." ;;
-        2) install_zram; read -p "Tekan Enter..." ;;
-        3) remove_swap; read -p "Tekan Enter..." ;;
-        4) exit 0 ;;
-        *) print_error "Pilihan salah!"; sleep 1 ;;
+        1) install_swapfile; read -p "Press Enter..." ;;
+        2) install_zram; read -p "Press Enter..." ;;
+        3) install_hybrid_ultra; read -p "Press Enter..." ;;
+        4) remove_swap; read -p "Press Enter..." ;;
+        5) clear; echo -e "${GREEN}Done. - Deki Niswara${NC}"; exit 0 ;;
+        *) print_error "Invalid option!"; sleep 1 ;;
     esac
 done
