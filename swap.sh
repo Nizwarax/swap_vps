@@ -88,12 +88,15 @@ show_success_art() {
 }
 
 display_menu() {
+    OS=$(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d'"' -f2); [ -z "$OS" ] && OS=$(uname -s)
     VIRT=$(detect_virt); RAM=$(free -h | awk '/^Mem:/{print $2}'); SWAP=$(free -h | awk '/^Swap:/{print $2 " / " $3}')
     clear
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${LIGHT}     UNIVERSAL CLEAN FINAL - ALL VPS READY${NC}"
+    echo -e "${LIGHT}       ULTIMATE SWAP MANAGER - CLEAN ULTRA${NC}"
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e " Virt : $VIRT | RAM : $RAM | Swap : $SWAP"
+    echo -e " OS   : $OS"
+    echo -e " Virt : $VIRT"
+    echo -e " RAM  : $RAM | Swap : $SWAP"
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
     echo -e " ${YELLOW}[1]${NC} Create Swap File (Standard)"
     echo -e " ${YELLOW}[2]${NC} Enable ZRAM (Compressed RAM)"
