@@ -96,8 +96,10 @@ display_menu() {
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e " OS   : $OS"
     echo -e " Virt : $VIRT"
-    echo -e " RAM  : $RAM | Swap : $SWAP"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+    echo -e " RAM  : $RAM"
+    echo -e " Swap : $SWAP"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
     echo -e " ${YELLOW}[1]${NC} Create Swap File (Standard)"
     echo -e " ${YELLOW}[2]${NC} Enable ZRAM (Compressed RAM)"
     echo -e " ${YELLOW}[3]${NC} Enable ULTRA HYBRID ${GREEN}(Recommended)${NC}"
@@ -106,6 +108,11 @@ display_menu() {
     echo ""
     echo -e -n "${CYAN} Select [1-5]: ${NC}"
 }
+}
+
+
+
+
 
 print_info() { echo -e "${BLUE}➽ $1${NC}"; }
 print_error() { echo -e "${RED}✘ $1${NC}"; }
